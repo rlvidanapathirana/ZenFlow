@@ -3,8 +3,7 @@ import { DEMO_TRACKS } from '../utils/demoData';
 import { OPEN_LIBRARY_TRACKS } from '../utils/openLibrary';
 import { driveToDirectUrl } from '../utils/driveHelper';
 
-const SHEET_ID = '13Fk7AfmSEEaMV6V38U2aij6qbjkrgLgLOKYxZxdGadU';
-const TAB_NAME = 'Tracks';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwTpdrLK3wAhcnW18XreVqlOabJ7vhS4Gy9odOj9laJhCrP46G36NyaWlCxMRY087TH/exec';
 
 function transformRow(row) {
   return {
@@ -28,7 +27,7 @@ export function useSheets() {
 
   useEffect(() => {
     async function fetchTracks() {
-      if (!SHEET_ID) {
+      if (!API_URL) {
         // No sheet configured — use demo data
         const mergedOpenTracks = OPEN_LIBRARY_TRACKS.map(t => ({
           ...t,
@@ -42,19 +41,27 @@ export function useSheets() {
       }
 
       try {
-        const url = `https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(TAB_NAME)}`;
-        const res = await fetch(url);
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'get_tracks' })
+        });
+        
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
         const data = await res.json();
-        if (!Array.isArray(data) || data.length === 0) throw new Error('Empty sheet');
+        if (!data.success) throw new Error(data.error || 'Failed to fetch tracks');
+        
+        const tracksArray = data.tracks || [];
+        if (!Array.isArray(tracksArray) || tracksArray.length === 0) throw new Error('Empty sheet');
+        
         const mergedOpenTracks = OPEN_LIBRARY_TRACKS.map(t => ({
           ...t,
           coverGradient: 'from-blue-900 via-indigo-900 to-slate-900',
           accentColor: '#3b82f6'
         }));
         
-        const fetchedTracks = data.map(transformRow);
-        setTracks([...fetchedTracks, ...mergedOpenTracks]);
+        const formattedTracks = tracksArray.map(transformRow);
+        setTracks([...formattedTracks, ...mergedOpenTracks]);
         setSource('sheets');
       } catch (err) {
         console.warn('[ZenFlow] Sheets fetch failed, using demo data:', err.message);
