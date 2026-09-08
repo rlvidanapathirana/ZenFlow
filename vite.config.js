@@ -16,7 +16,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/docs\.google\.com\/uc/,
+            urlPattern: /^(https:\/\/docs\.google\.com\/uc|https:\/\/(www\.)?dropbox\.com|https:\/\/dl\.dropboxusercontent\.com|https:\/\/www\.soundhelix\.com)/,
             handler: 'CacheFirst',
             options: {
               cacheName: 'audio-cache',
