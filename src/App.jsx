@@ -174,8 +174,16 @@ function AppShell() {
         </main>
 
         {/* Footer */}
-        <footer className="text-center text-[10px] text-[var(--text-3)] pb-6 pt-2">
-          Made with ◎ · 100% Free · No Ads · PWA
+        <footer className="text-center text-[11px] text-[var(--text-3)] pb-6 pt-2">
+          Developed with ❤️ by{' '}
+          <a
+            href="https://lakshan.netlify.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--text-2)] hover:text-zen-400 underline decoration-zen-500/30 underline-offset-2 transition-colors font-medium"
+          >
+            V.P.R. Lakshan Vidanapathirana
+          </a>
         </footer>
       </div>
 

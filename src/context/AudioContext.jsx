@@ -48,15 +48,17 @@ export function AudioProvider({ children }) {
     setCurrentTrack(track);
     setSeek(0);
 
+    const isFading = crossfade && !!oldHowl;
+
     const newHowl = new Howl({
       src: [audioUrl || track.drive_link || ''],
       html5: true, // streaming
       loop: true,
-      volume: crossfade ? 0 : volume,
+      volume: isFading ? 0 : volume,
       onload: () => {
         setDuration(newHowl.duration());
         setIsLoading(false);
-        if (crossfade && oldHowl) {
+        if (isFading) {
           // Fade in new
           newHowl.play();
           newHowl.fade(0, volume, 1800);
