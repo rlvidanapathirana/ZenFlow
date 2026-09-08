@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  base: process.env.GITHUB_ACTIONS ? '/ZenFlow/' : '/',
   plugins: [
     react(),
     tailwindcss(),
@@ -40,8 +41,8 @@ export default defineConfig({
         background_color: '#030712',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
+        start_url: process.env.GITHUB_ACTIONS ? '/ZenFlow/' : '/',
+        scope: process.env.GITHUB_ACTIONS ? '/ZenFlow/' : '/',
         icons: [
           { src: 'icons/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
