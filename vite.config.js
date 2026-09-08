@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'favicon.ico', 'icons/*.png'],
       devOptions: { enabled: true },
       workbox: {

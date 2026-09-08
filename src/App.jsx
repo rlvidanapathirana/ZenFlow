@@ -8,6 +8,7 @@ import TrackList from './components/TrackList';
 import BottomPlayer from './components/BottomPlayer';
 import ExpandedPlayer from './components/ExpandedPlayer';
 import InstallPrompt from './components/InstallPrompt';
+import UpdatePrompt from './components/UpdatePrompt';
 import { Sun, Moon, Wifi, WifiOff } from 'lucide-react';
 import { CATEGORIES } from './utils/demoData';
 
@@ -195,6 +196,9 @@ function AppShell() {
 
       {/* PWA Install Prompt */}
       <InstallPrompt />
+
+      {/* PWA Update Prompt */}
+      <UpdatePrompt />
     </div>
   );
 }
