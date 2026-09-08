@@ -469,9 +469,9 @@ td.bold{color:var(--text);font-weight:500}
             <div class="fg"><label class="flabel">ID</label>
               <input id="fId" class="finput" readonly style="background:var(--s3);cursor:not-allowed"/></div>
             <div class="fg"><label class="flabel">Category<span class="req">*</span></label>
-              <select id="fCat" class="finput"><option value="">Select…</option>
-                <option>Binaural</option><option>Nature</option><option>Guided</option><option>Ambient</option>
-              </select></div>
+              <input id="fCat" class="finput" list="catList" placeholder="Select or type..."/>
+              <datalist id="catList"></datalist>
+            </div>
             <div class="fg" style="grid-column:1/-1"><label class="flabel">Title<span class="req">*</span></label>
               <input id="fTitle" class="finput" placeholder="Deep Trance Induction"/></div>
             <div class="fg" style="grid-column:1/-1"><label class="flabel">Google Drive Link</label>
@@ -592,7 +592,7 @@ td.bold{color:var(--text);font-weight:500}
         <div class="fg"><label class="flabel">ID</label>
           <input id="mId" class="finput" readonly style="background:var(--s3);cursor:not-allowed"/></div>
         <div class="fg"><label class="flabel">Category<span class="req">*</span></label>
-          <select id="mCat" class="finput"><option>Binaural</option><option>Nature</option><option>Guided</option><option>Ambient</option></select></div>
+          <input id="mCat" class="finput" list="catList" placeholder="Select or type..."/></div>
         <div class="fg" style="grid-column:1/-1"><label class="flabel">Title<span class="req">*</span></label>
           <input id="mTitle" class="finput"/></div>
         <div class="fg" style="grid-column:1/-1"><label class="flabel">Drive Link</label>
@@ -782,6 +782,7 @@ async function refreshData() {
     const r = await api('get_tracks',{session_token:SESSION.token});
     allTracks = r.tracks || [];
     renderDashboard();
+    populateCategories();
     renderTrackTable(allTracks);
     document.getElementById('nbTracks').textContent = allTracks.length;
     document.getElementById('libSub').textContent   = `${allTracks.length} track${allTracks.length!==1?'s':''} in sheet`;
@@ -796,7 +797,23 @@ async function loadUsers() {
     renderUsers(allUsers);
     document.getElementById('nbUsers').textContent = allUsers.length;
     document.getElementById('userSub').textContent = `${allUsers.length} user${allUsers.length!==1?'s':''} registered`;
-  } catch(e){ toast(e.message,'err'); }
+  } catch(e) { toast(e.message,'err'); }
+}
+
+function populateCategories() {
+  const cats = [...new Set(allTracks.map(t=>t.category).filter(Boolean))];
+  const listHtml = cats.map(c => `<option value="${esc(c)}">`).join('');
+  
+  const dl = el('catList');
+  if (dl) dl.innerHTML = listHtml;
+  
+  const catQ = el('catQ');
+  const currentQ = catQ.value;
+  const defCats = ['Binaural','Nature','Guided','Ambient'];
+  const allUnique = [...new Set([...defCats, ...cats])];
+  
+  catQ.innerHTML = `<option value="">All</option>` + allUnique.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  catQ.value = currentQ || '';
 }
 
 /* ─── DASHBOARD ──────────────────────────────────────── */

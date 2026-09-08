@@ -81,9 +81,11 @@ function AppShell() {
   // Category counts
   const categoryCounts = useMemo(() => {
     const counts = { All: tracks.filter((t) => t.category !== 'Open Library').length };
-    CATEGORIES.filter((c) => c !== 'All').forEach((cat) => {
+    const uniqueCats = [...new Set(tracks.map(t => t.category).filter(c => c && c !== 'Open Library'))];
+    uniqueCats.forEach((cat) => {
       counts[cat] = tracks.filter((t) => t.category === cat).length;
     });
+    counts['Open Library'] = tracks.filter((t) => t.category === 'Open Library').length;
     return counts;
   }, [tracks]);
 

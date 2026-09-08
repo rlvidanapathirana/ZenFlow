@@ -28,10 +28,17 @@ const CATEGORY_ACTIVE_BG = {
 };
 
 export default function CategoryTabs({ active, onChange, counts = {} }) {
+  const allCats = Object.keys(counts).filter(c => c !== 'Open Library');
+  allCats.push('Open Library'); // keep it at the end
+
   return (
     <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-      {CATEGORIES.map((cat) => {
+      {allCats.map((cat) => {
         const isActive = active === cat;
+        const icon = CATEGORY_ICONS[cat] || '★'; // fallback icon
+        const colorClass = CATEGORY_COLORS[cat] || 'text-slate-400';
+        const activeBg = CATEGORY_ACTIVE_BG[cat] || 'bg-slate-500/20 border-slate-500/50 text-slate-300';
+        
         return (
           <button
             key={cat}
@@ -41,7 +48,7 @@ export default function CategoryTabs({ active, onChange, counts = {} }) {
               flex items-center gap-1.5 px-4 py-2 rounded-xl border text-sm font-medium
               whitespace-nowrap flex-shrink-0 transition-all duration-250
               ${isActive
-                ? CATEGORY_ACTIVE_BG[cat]
+                ? activeBg
                 : 'border-[var(--border)] text-[var(--text-2)] hover:border-[var(--border-strong)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'}
             `}
             style={{
@@ -49,8 +56,8 @@ export default function CategoryTabs({ active, onChange, counts = {} }) {
               boxShadow: isActive ? `0 2px 16px var(--accent-glow)` : 'none',
             }}
           >
-            <span className={`text-xs ${isActive ? '' : CATEGORY_COLORS[cat]}`}>
-              {CATEGORY_ICONS[cat]}
+            <span className={`text-xs ${isActive ? '' : colorClass}`}>
+              {icon}
             </span>
             {cat}
             {counts[cat] !== undefined && (
