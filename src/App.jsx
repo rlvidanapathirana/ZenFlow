@@ -60,7 +60,9 @@ function AppShell() {
   // Filtering
   const filteredTracks = useMemo(() => {
     let t = tracks;
-    if (activeCategory !== 'All') {
+    if (activeCategory === 'All') {
+      t = t.filter((tr) => tr.category !== 'Open Library');
+    } else if (activeCategory !== 'All') {
       t = t.filter((tr) => tr.category === activeCategory);
     }
     if (search.trim()) {
@@ -77,7 +79,7 @@ function AppShell() {
 
   // Category counts
   const categoryCounts = useMemo(() => {
-    const counts = { All: tracks.length };
+    const counts = { All: tracks.filter((t) => t.category !== 'Open Library').length };
     CATEGORIES.filter((c) => c !== 'All').forEach((cat) => {
       counts[cat] = tracks.filter((t) => t.category === cat).length;
     });
