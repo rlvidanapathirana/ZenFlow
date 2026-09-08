@@ -3,8 +3,8 @@ import { DEMO_TRACKS } from '../utils/demoData';
 import { OPEN_LIBRARY_TRACKS } from '../utils/openLibrary';
 import { driveToDirectUrl } from '../utils/driveHelper';
 
-const SHEET_ID = import.meta.env.VITE_SHEET_ID || '13Fk7AfmSEEaMV6V38U2aij6qbjkrgLgLOKYxZxdGadU';
-const TAB_NAME = import.meta.env.VITE_TAB_NAME || 'Tracks';
+const SHEET_ID = '13Fk7AfmSEEaMV6V38U2aij6qbjkrgLgLOKYxZxdGadU';
+const TAB_NAME = 'Tracks';
 
 function transformRow(row) {
   return {
