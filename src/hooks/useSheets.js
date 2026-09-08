@@ -34,7 +34,7 @@ export function useSheets() {
           coverGradient: 'from-blue-900 via-indigo-900 to-slate-900',
           accentColor: '#3b82f6'
         }));
-        setTracks([...DEMO_TRACKS, ...mergedOpenTracks]);
+        setTracks([...mergedOpenTracks]);
         setSource('demo');
         setLoading(false);
         return;
@@ -70,7 +70,7 @@ export function useSheets() {
           coverGradient: 'from-blue-900 via-indigo-900 to-slate-900',
           accentColor: '#3b82f6'
         }));
-        setTracks([...DEMO_TRACKS, ...mergedOpenTracks]);
+        setTracks([...mergedOpenTracks]);
         setSource('demo');
         setError(err.message);
       } finally {
