@@ -1,42 +1,42 @@
 export const OPEN_LIBRARY_TRACKS = [
   {
     id: 'ol-1',
-    title: 'Deep Space Ambient (432Hz)',
+    title: 'Deep Electronic Ambient',
     category: 'Open Library',
-    drive_link: 'https://archive.org/download/MeditationMusic_201807/Meditation%20Music.mp3',
-    duration: '15:00',
-    tags: 'ambient, space, 432hz, calm',
-    description: 'Deep relaxing ambient music. (Source: Internet Archive - Public Domain)',
+    drive_link: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    duration: '06:12',
+    tags: 'ambient, electronic, focus, calm',
+    description: 'A deep electronic ambient track for focus and relaxation. (Source: SoundHelix)',
     isOpenLibrary: true
   },
   {
     id: 'ol-2',
-    title: 'Forest Rain & Thunder',
+    title: 'Flow State Melody',
     category: 'Open Library',
-    drive_link: 'https://archive.org/download/RainSounds10Hours/Rain_Sounds_10_Hours.mp3',
-    duration: '10:00:00',
-    tags: 'nature, rain, thunder, sleep',
-    description: 'Continuous heavy rain and distant thunder. (Source: Internet Archive)',
+    drive_link: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3',
+    duration: '07:22',
+    tags: 'flow, focus, ambient, work',
+    description: 'Smooth and continuous flow state music for deep work.',
     isOpenLibrary: true
   },
   {
     id: 'ol-3',
-    title: 'Tibetan Singing Bowls',
+    title: 'Morning Awakening',
     category: 'Open Library',
-    drive_link: 'https://archive.org/download/tibetan-singing-bowls/Singing_Bowls.mp3',
-    duration: '30:00',
-    tags: 'bowls, healing, meditation',
-    description: 'Traditional Tibetan singing bowls for chakra healing.',
+    drive_link: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3',
+    duration: '05:30',
+    tags: 'morning, positive, awakening',
+    description: 'Uplifting instrumental sounds to start your day positively.',
     isOpenLibrary: true
   },
   {
     id: 'ol-4',
-    title: 'Binaural Delta Sleep (2Hz)',
+    title: 'Evening Unwind',
     category: 'Open Library',
-    drive_link: 'https://archive.org/download/binaural-delta/Delta_Sleep.mp3',
-    duration: '45:00',
-    tags: 'binaural, delta, sleep, deep',
-    description: 'Pure delta wave binaural beats for deep sleep.',
+    drive_link: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-17.mp3',
+    duration: '08:45',
+    tags: 'evening, chill, unwind, deep',
+    description: 'Relaxing rhythms to help you unwind at the end of the day.',
     isOpenLibrary: true
   }
 ];
