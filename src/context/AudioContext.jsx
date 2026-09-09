@@ -58,9 +58,20 @@ export function AudioProvider({ children }) {
     ambientRef.current?.unload();
   }, [stopSeekTicker]);
 
-  // Core: load and play a track (with optional crossfade)
-  const playTrack = useCallback((track, audioUrl, crossfade = true) => {
+  // Core: load and play a track
+  const playTrack = useCallback((track, audioUrl) => {
+    stopSeekTicker();
+
     const oldHowl = howlRef.current;
+    if (oldHowl) {
+      try {
+        oldHowl.stop();
+        oldHowl.unload();
+      } catch (err) {
+        console.warn('[AudioContext] oldHowl unload error:', err);
+      }
+    }
+
     setIsLoading(true);
     setCurrentTrack(track);
     setSeek(0);
@@ -68,35 +79,32 @@ export function AudioProvider({ children }) {
     const initialDur = parseDurationStr(track?.duration);
     if (initialDur > 0) setDuration(initialDur);
 
-    const isFading = crossfade && !!oldHowl;
+    const currentVol = isMutedRef.current ? 0 : volumeRef.current;
 
     const newHowl = new Howl({
       src: [audioUrl || track.drive_link || ''],
       html5: true, // streaming
       format: ['mp3'],
+      preload: true,
       loop: true,
-      volume: isFading ? 0 : volume,
+      volume: currentVol,
       onload: () => {
         const d = newHowl.duration();
         const fallbackD = parseDurationStr(track?.duration);
         setDuration(d && !isNaN(d) && d > 0 ? d : fallbackD);
         setIsLoading(false);
-        if (isFading) {
-          // Fade in new
-          newHowl.play();
-          newHowl.fade(0, volume, 1800);
-          // Fade out old
-          oldHowl.fade(oldHowl.volume(), 0, 1800);
-          oldHowl.once('fade', () => oldHowl.unload());
-        } else {
-          oldHowl?.unload();
-          newHowl.volume(volume);
-          newHowl.play();
-        }
+        newHowl.volume(isMutedRef.current ? 0 : volumeRef.current);
+        newHowl.play();
         setIsPlaying(true);
         startSeekTicker();
       },
-      onloaderror: () => {
+      onloaderror: (_id, err) => {
+        console.warn('[AudioContext] onloaderror:', err);
+        setIsLoading(false);
+        setIsPlaying(false);
+      },
+      onplayerror: (_id, err) => {
+        console.warn('[AudioContext] onplayerror:', err);
         setIsLoading(false);
         setIsPlaying(false);
       },
@@ -110,7 +118,7 @@ export function AudioProvider({ children }) {
     });
 
     howlRef.current = newHowl;
-  }, [volume, queueIndex, queue, startSeekTicker, stopSeekTicker]);
+  }, [queueIndex, queue, startSeekTicker, stopSeekTicker]);
 
   const pause = useCallback(() => {
     howlRef.current?.pause();
