@@ -18,16 +18,6 @@ export default defineConfig({
         navigateFallbackDenylist: [/\/admin\.html/],
         runtimeCaching: [
           {
-            // Audio streams: CacheFirst for the main app player
-            urlPattern: /^(https:\/\/docs\.google\.com\/uc|https:\/\/(www\.)?dropbox\.com|https:\/\/dl\.dropboxusercontent\.com|https:\/\/www\.soundhelix\.com)/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'audio-cache',
-              expiration: { maxEntries: 30, maxAgeSeconds: 30 * 24 * 60 * 60 },
-              fetchOptions: { mode: 'no-cors' },
-            },
-          },
-          {
             urlPattern: /^https:\/\/opensheet\.elk\.sh/,
             handler: 'NetworkFirst',
             options: {

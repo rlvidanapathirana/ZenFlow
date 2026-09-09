@@ -73,6 +73,7 @@ export function AudioProvider({ children }) {
     const newHowl = new Howl({
       src: [audioUrl || track.drive_link || ''],
       html5: true, // streaming
+      format: ['mp3'],
       loop: true,
       volume: isFading ? 0 : volume,
       onload: () => {
@@ -202,6 +203,7 @@ export function AudioProvider({ children }) {
     const a = new Howl({
       src: [url || track.drive_link || ''],
       html5: true,
+      format: ['mp3'],
       loop: true,
       volume: 0,
       onload: () => {

@@ -14,7 +14,12 @@ export function driveToDirectUrl(shareUrl) {
   if (!shareUrl) return '';
 
   if (shareUrl.includes('dropbox.com')) {
-    return shareUrl.replace('dl=0', 'raw=1').replace('dl=1', 'raw=1');
+    // Convert www.dropbox.com or dropbox.com to dl.dropboxusercontent.com for direct streaming with Range request support
+    let url = shareUrl.replace('dl=0', 'raw=1');
+    url = url.replace(/https?:\/\/(www\.)?dropbox\.com\//, 'https://dl.dropboxusercontent.com/');
+    // If raw=1 is not present, ensure dl=0 or raw=0 is replaced
+    url = url.replace(/[?&]dl=[01]/, '');
+    return url;
   }
 
   // Already a direct stream URL
