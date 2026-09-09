@@ -1,6 +1,19 @@
 import { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
 import { Howl } from 'howler';
 
+function parseDurationStr(val) {
+  if (typeof val === 'number' && !isNaN(val) && val > 0) return val;
+  if (typeof val === 'string') {
+    const parts = val.trim().split(':').map(Number);
+    if (!parts.some(isNaN)) {
+      if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      if (parts.length === 2) return parts[0] * 60 + parts[1];
+      if (parts.length === 1 && parts[0] > 0) return parts[0];
+    }
+  }
+  return 0;
+}
+
 const AudioCtx = createContext(null);
 
 export function AudioProvider({ children }) {
@@ -25,8 +38,12 @@ export function AudioProvider({ children }) {
   const startSeekTicker = useCallback(() => {
     clearInterval(seekIntervalRef.current);
     seekIntervalRef.current = setInterval(() => {
-      if (howlRef.current?.playing()) {
-        setSeek(howlRef.current.seek() || 0);
+      const howl = howlRef.current;
+      if (howl?.playing()) {
+        const currentPos = howl.seek();
+        if (typeof currentPos === 'number' && !isNaN(currentPos)) {
+          setSeek(currentPos);
+        }
       }
     }, 500);
   }, []);
@@ -48,6 +65,9 @@ export function AudioProvider({ children }) {
     setCurrentTrack(track);
     setSeek(0);
 
+    const initialDur = parseDurationStr(track?.duration);
+    if (initialDur > 0) setDuration(initialDur);
+
     const isFading = crossfade && !!oldHowl;
 
     const newHowl = new Howl({
@@ -56,7 +76,9 @@ export function AudioProvider({ children }) {
       loop: true,
       volume: isFading ? 0 : volume,
       onload: () => {
-        setDuration(newHowl.duration());
+        const d = newHowl.duration();
+        const fallbackD = parseDurationStr(track?.duration);
+        setDuration(d && !isNaN(d) && d > 0 ? d : fallbackD);
         setIsLoading(false);
         if (isFading) {
           // Fade in new
@@ -123,21 +145,33 @@ export function AudioProvider({ children }) {
     const currentVol = isMutedRef.current ? 0 : volumeRef.current;
 
     try {
-      // 1. Lock volume & stop active fade timers
-      howl.volume(currentVol);
-
-      // 2. Perform seek
-      howl.seek(numSeek);
-
-      // 3. Re-enforce volume to fix browser HTML5 Audio volume spike bug
-      howl.volume(currentVol);
-
-      // 4. Update seek state
+      // 1. Immediately update React seek state for instant UI responsiveness
       setSeek(numSeek);
 
-      // 5. Ensure track continues playing if it was playing
-      if (isPlayingRef.current && !howl.playing()) {
-        howl.play();
+      // 2. Lock volume on Howl instance
+      howl.volume(currentVol);
+
+      // 3. Direct HTML5 audio DOM node seek (avoids mobile browser autoplay blocking and duplicate sound bug)
+      const sound = howl._sounds && howl._sounds[0];
+      const audioNode = sound?._node;
+
+      if (audioNode && typeof audioNode.currentTime === 'number') {
+        sound._seek = numSeek;
+        audioNode.volume = currentVol;
+        try {
+          audioNode.currentTime = numSeek;
+        } catch (e) {
+          console.warn('[AudioContext] audioNode seek error:', e);
+        }
+        audioNode.volume = currentVol;
+
+        // If audio was playing and briefly paused during buffering on mobile, resume safely
+        if (isPlayingRef.current && audioNode.paused) {
+          audioNode.play().catch(() => {});
+        }
+      } else {
+        // Fallback to howler seek
+        howl.seek(numSeek);
         howl.volume(currentVol);
       }
     } catch (err) {

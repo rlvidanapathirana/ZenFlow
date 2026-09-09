@@ -7,9 +7,14 @@ import {
 import { useState } from 'react';
 
 function formatTime(secs) {
-  if (!secs || isNaN(secs)) return '0:00';
-  const m = Math.floor(secs / 60);
-  const s = Math.floor(secs % 60);
+  if (!secs || isNaN(secs) || secs < 0) return '0:00';
+  const total = Math.floor(secs);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = Math.floor(total % 60);
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
@@ -38,6 +43,15 @@ export default function BottomPlayer({ onExpand }) {
   const displaySeek = localSeek !== null ? localSeek : seek;
   const progress = duration > 0 ? (displaySeek / duration) * 100 : 0;
 
+  const handleSeekCommit = (e) => {
+    const rawVal = e?.target?.value;
+    const targetVal = (rawVal !== undefined && rawVal !== '') ? Number(rawVal) : localSeek;
+    if (targetVal !== null && !isNaN(targetVal)) {
+      seekTo(targetVal);
+    }
+    setLocalSeek(null);
+  };
+
   return (
     <div className="bottom-player fixed bottom-0 left-0 right-0 z-40 animate-slide-up">
       {/* Seek bar — full width, above player */}
@@ -55,28 +69,12 @@ export default function BottomPlayer({ onExpand }) {
           step={0.5}
           value={displaySeek}
           onChange={(e) => setLocalSeek(Number(e.target.value))}
-          onPointerUp={() => {
-            if (localSeek !== null) {
-              seekTo(localSeek);
-              setLocalSeek(null);
-            }
-          }}
-          onTouchEnd={() => {
-            if (localSeek !== null) {
-              seekTo(localSeek);
-              setLocalSeek(null);
-            }
-          }}
-          onMouseUp={() => {
-            if (localSeek !== null) {
-              seekTo(localSeek);
-              setLocalSeek(null);
-            }
-          }}
+          onPointerUp={handleSeekCommit}
+          onTouchEnd={handleSeekCommit}
+          onMouseUp={handleSeekCommit}
           onKeyUp={(e) => {
-            if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && localSeek !== null) {
-              seekTo(localSeek);
-              setLocalSeek(null);
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+              handleSeekCommit(e);
             }
           }}
           className="absolute inset-0 w-full opacity-0 cursor-pointer h-0.5"
