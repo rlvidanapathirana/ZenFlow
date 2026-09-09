@@ -471,7 +471,8 @@ td.bold{color:var(--text);font-weight:500}
             <div class="fg" style="grid-column:1/-1"><label class="flabel">Title<span class="req">*</span></label>
               <input id="fTitle" class="finput" placeholder="Deep Trance Induction"/></div>
             <div class="fg" style="grid-column:1/-1"><label class="flabel">Google Drive Link</label>
-              <input id="fLink" class="finput" placeholder="https://drive.google.com/file/d/…/view" oninput="autoConv('fLink','fConv')"/>
+              <input id="fLink" class="finput" placeholder="https://drive.google.com/file/d/…/view"
+                     oninput="autoConv('fLink','fConv');scheduleDurDetect('fLink','fAudioEl','fAudio','fDur','fDurStatus')"/>
               <div id="fConv" class="driveout" style="display:none" onclick="copyText(this.textContent)"></div>
             </div>
             <div class="fg"><label class="flabel">Duration <span id="fDurStatus" style="font-size:10px;color:var(--ok);font-weight:400;text-transform:none;letter-spacing:0"></span></label>
@@ -592,7 +593,8 @@ td.bold{color:var(--text);font-weight:500}
         <div class="fg" style="grid-column:1/-1"><label class="flabel">Title<span class="req">*</span></label>
           <input id="mTitle" class="finput"/></div>
         <div class="fg" style="grid-column:1/-1"><label class="flabel">Drive Link</label>
-          <input id="mLink" class="finput" oninput="autoConv('mLink','mConv')"/>
+          <input id="mLink" class="finput"
+                 oninput="autoConv('mLink','mConv');scheduleDurDetect('mLink','mAudioEl','mAudioWrap','mDur','mDurStatus')"/>
           <div id="mConv" class="driveout" style="display:none" onclick="copyText(this.textContent)"></div>
         </div>
         <div class="fg"><label class="flabel">Duration <span id="mDurStatus" style="font-size:10px;color:var(--ok);font-weight:400;text-transform:none;letter-spacing:0"></span></label><input id="mDur" class="finput" placeholder="Auto-detected when you test audio…"/></div>
@@ -1046,6 +1048,69 @@ async function changePassword() {
 /* ═══════════════════════════════════════════════════════
    AUDIO & DRIVE UTILS
 ═══════════════════════════════════════════════════════ */
+
+/* ─── DURATION AUTO-DETECT (DOM-based, bypasses service worker) ─── */
+// Uses the EXISTING <audio> elements already in the DOM.
+// Reusing a DOM-attached element avoids PWA service-worker interception
+// that blocks programmatically-created `new Audio()` on GitHub Pages.
+let _schedTimers = {};
+function scheduleDurDetect(linkInputId, audioElId, wrapId, durInputId, statusId) {
+  clearTimeout(_schedTimers[linkInputId]);
+  _schedTimers[linkInputId] = setTimeout(() => {
+    const raw = v(linkInputId);
+    const url = drive2stream(raw);
+    if (!url) return;
+
+    const statusEl = statusId ? el(statusId) : null;
+    const audioEl  = el(audioElId);
+    const wrap     = el(wrapId);
+    if (!audioEl) return;
+
+    // Remove previous listener
+    if (audioEl._durDetectListener) {
+      audioEl.removeEventListener('loadedmetadata', audioEl._durDetectListener);
+    }
+    if (audioEl._durErrorListener) {
+      audioEl.removeEventListener('error', audioEl._durErrorListener);
+    }
+
+    if (statusEl) statusEl.textContent = '⟳ detecting…';
+
+    audioEl._durDetectListener = function() {
+      const secs = Math.round(audioEl.duration);
+      if (isFinite(secs) && secs > 0) {
+        const h = Math.floor(secs/3600);
+        const m = Math.floor((secs%3600)/60);
+        const s = secs%60;
+        const fmt = h > 0
+          ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+          : `${m}:${String(s).padStart(2,'0')}`;
+        el(durInputId).value = fmt;
+        if (statusEl) statusEl.textContent = '✓ detected';
+        // Edit modal: auto-save
+        if (linkInputId === 'mLink' && SESSION) autoSaveDuration(fmt, statusEl);
+      } else {
+        if (statusEl) statusEl.textContent = '';
+      }
+      // Pause after metadata — don't auto-play unless user clicked Test
+      audioEl.pause();
+    };
+
+    audioEl._durErrorListener = function() {
+      if (statusEl) statusEl.textContent = '';
+    };
+
+    audioEl.addEventListener('loadedmetadata', audioEl._durDetectListener, { once: true });
+    audioEl.addEventListener('error',          audioEl._durErrorListener,  { once: true });
+
+    // Show the audio panel so the browser treats this as a visible media element
+    if (wrap) wrap.style.display = 'block';
+    audioEl.src = url;
+    audioEl.load();         // loads metadata without playing
+    audioEl.volume = 0;     // muted in case it auto-plays briefly
+  }, 700);
+}
+
 function drive2stream(url) {
   if(!url) return '';
   if(url.includes('dropbox.com')) return url.replace('dl=0', 'raw=1').replace('dl=1', 'raw=1');
