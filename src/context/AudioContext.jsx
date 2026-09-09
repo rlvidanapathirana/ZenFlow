@@ -101,13 +101,44 @@ export function AudioProvider({ children }) {
     setIsPlaying(true);
   }, [startSeekTicker]);
 
-  const toggle = useCallback(() => {
-    if (isPlaying) pause(); else resume();
-  }, [isPlaying, pause, resume]);
+  const volumeRef = useRef(volume);
+  const isMutedRef = useRef(isMuted);
+  const isPlayingRef = useRef(isPlaying);
+
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
   const seekTo = useCallback((val) => {
-    howlRef.current?.seek(val);
-    setSeek(val);
+    const howl = howlRef.current;
+    if (!howl) return;
+
+    const numSeek = Number(val);
+    if (isNaN(numSeek) || numSeek < 0) return;
+
+    const currentVol = isMutedRef.current ? 0 : volumeRef.current;
+
+    try {
+      // 1. Lock volume & stop active fade timers
+      howl.volume(currentVol);
+
+      // 2. Perform seek
+      howl.seek(numSeek);
+
+      // 3. Re-enforce volume to fix browser HTML5 Audio volume spike bug
+      howl.volume(currentVol);
+
+      // 4. Update seek state
+      setSeek(numSeek);
+
+      // 5. Ensure track continues playing if it was playing
+      if (isPlayingRef.current && !howl.playing()) {
+        howl.play();
+        howl.volume(currentVol);
+      }
+    } catch (err) {
+      console.warn('[AudioContext] seekTo error:', err);
+    }
   }, []);
 
   const changeVolume = useCallback((val) => {

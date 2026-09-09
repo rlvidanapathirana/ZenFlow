@@ -18,18 +18,20 @@ export function driveToDirectUrl(shareUrl) {
   }
 
   // Already a direct stream URL
-  if (shareUrl.includes('docs.google.com/uc')) return shareUrl;
+  if (shareUrl.includes('docs.google.com/uc')) {
+    return shareUrl.replace('export=download', 'export=open');
+  }
 
   // Match /file/d/{FILE_ID}/
   const fileIdMatch = shareUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (fileIdMatch) {
-    return `https://docs.google.com/uc?export=download&id=${fileIdMatch[1]}`;
+    return `https://docs.google.com/uc?export=open&id=${fileIdMatch[1]}`;
   }
 
   // Match open?id={FILE_ID}
   const openIdMatch = shareUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (openIdMatch) {
-    return `https://docs.google.com/uc?export=download&id=${openIdMatch[1]}`;
+    return `https://docs.google.com/uc?export=open&id=${openIdMatch[1]}`;
   }
 
   // Return as-is if no pattern matched (might be a raw URL)

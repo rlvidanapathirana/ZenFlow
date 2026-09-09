@@ -167,6 +167,18 @@ export default function ExpandedPlayer({ onClose }) {
                   setLocalSeek(null);
                 }
               }}
+              onTouchEnd={() => {
+                if (localSeek !== null) {
+                  seekTo(localSeek);
+                  setLocalSeek(null);
+                }
+              }}
+              onMouseUp={() => {
+                if (localSeek !== null) {
+                  seekTo(localSeek);
+                  setLocalSeek(null);
+                }
+              }}
               onKeyUp={(e) => {
                 if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && localSeek !== null) {
                   seekTo(localSeek);
