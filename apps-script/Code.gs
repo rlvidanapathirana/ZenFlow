@@ -30,6 +30,41 @@ const TRACK_COLS = {
   duration: 4, tags: 5, description: 6,
 };
 
+// ─── DYNAMIC TRACK COLUMN MAP ─────────────────────────────────
+// Reads the actual header row so the code works even if the Sheet
+// column order differs from TRACK_COLS.
+function getTrackColumnMap() {
+  const sheet = getSheet(CONFIG.TRACKS_TAB);
+  if (!sheet) return TRACK_COLS; // fallback
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const map = {};
+  headers.forEach((h, i) => {
+    // Normalise: lowercase + replace spaces with underscores
+    const key = String(h).toLowerCase().replace(/\s+/g, '_').trim();
+    map[key] = i;
+  });
+  // Always ensure default fallback keys
+  const fallbackKeys = ['id','title','category','drive_link','duration','tags','description'];
+  fallbackKeys.forEach(k => { if (map[k] === undefined) map[k] = TRACK_COLS[k]; });
+  return map;
+}
+
+// ─── DURATION FORMAT HELPER ──────────────────────────────────
+// Google Sheets auto-converts "1:11:10" to a time serial.
+// This converts a Date (or string) back to H:MM:SS / M:SS
+function formatDurationCell(val) {
+  if (!val && val !== 0) return '';
+  if (val instanceof Date) {
+    const h = val.getHours();
+    const m = val.getMinutes();
+    const s = val.getSeconds();
+    return h > 0
+      ? h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0')
+      : m + ':' + String(s).padStart(2,'0');
+  }
+  return String(val);
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  ENTRY POINTS  (Web App හරහා auto-call වෙනවා — directly Run කරන්න එපා!)
 // ═══════════════════════════════════════════════════════════════
@@ -412,16 +447,26 @@ function getTracks(params) {
   const data = sheet.getDataRange().getValues();
   if (data.length < 2) return { success: true, tracks: [] };
 
-  const [header, ...rows] = data;
+  // Build dynamic column map from actual header row
+  const colMap = {};
+  const headers = data[0];
+  headers.forEach((h, i) => {
+    const key = String(h).toLowerCase().replace(/\s+/g, '_').trim();
+    colMap[key] = i;
+  });
+  // Fallback to TRACK_COLS if headers not found
+  const col = (name) => colMap[name] !== undefined ? colMap[name] : TRACK_COLS[name];
+
+  const rows = data.slice(1);
   const tracks = rows.map((row, i) => ({
     _row:        i + 2,
-    id:          row[TRACK_COLS.id]          || '',
-    title:       row[TRACK_COLS.title]       || '',
-    category:    row[TRACK_COLS.category]    || '',
-    drive_link:  row[TRACK_COLS.drive_link]  || '',
-    duration:    row[TRACK_COLS.duration]    || '',
-    tags:        row[TRACK_COLS.tags]        || '',
-    description: row[TRACK_COLS.description] || '',
+    id:          row[col('id')]          || '',
+    title:       row[col('title')]       || '',
+    category:    row[col('category')]    || '',
+    drive_link:  row[col('drive_link')]  || '',
+    duration:    formatDurationCell(row[col('duration')]),
+    tags:        row[col('tags')]        || '',
+    description: row[col('description')] || '',
   })).filter(t => t.title);
 
   return { success: true, tracks };
@@ -445,28 +490,63 @@ function addTrack(params) {
     params.description || '',
   ]);
 
+  // Force duration cell to plain text so Sheets doesn't parse it as time
+  const newRow = sheet.getLastRow();
+  const durColIndex = (TRACK_COLS.duration || 4) + 1; // 1-indexed
+  sheet.getRange(newRow, durColIndex).setNumberFormat('@STRING@');
+
   return { success: true, message: 'Track added!', id: newId };
 }
 
 function updateTrack(params) {
   requireAuth(params);
 
+  // DEBUG — check Apps Script Logs to see what arrives
+  Logger.log('updateTrack called. duration received: [' + params.duration + '] | row: ' + params.row_index);
+  Logger.log('Full params keys: ' + Object.keys(params).join(', '));
+
   const rowIndex = parseInt(params.row_index);
   if (!rowIndex || rowIndex < 2) throw new Error('Invalid row index');
 
-  const sheet = getSheet(CONFIG.TRACKS_TAB);
-  sheet.getRange(rowIndex, 1, 1, 7).setValues([[
-    params.id          || '',
-    params.title       || '',
-    params.category    || '',
-    params.drive_link  || '',
-    params.duration    || '',
-    params.tags        || '',
-    params.description || '',
-  ]]);
+  const sheet  = getSheet(CONFIG.TRACKS_TAB);
+  // Build dynamic column map from actual header row
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const colMap  = {};
+  headers.forEach((h, i) => {
+    const key = String(h).toLowerCase().replace(/\s+/g, '_').trim();
+    colMap[key] = i;
+  });
+  Logger.log('Sheet headers: ' + JSON.stringify(headers));
+  Logger.log('colMap: ' + JSON.stringify(colMap));
+  const col = (name) => colMap[name] !== undefined ? colMap[name] : TRACK_COLS[name];
 
-  return { success: true, message: 'Track updated!' };
+  // Write each field to its correct column individually
+  const updates = {
+    id:          params.id          || '',
+    title:       params.title       || '',
+    category:    params.category    || '',
+    drive_link:  params.drive_link  || '',
+    duration:    params.duration    || '',
+    tags:        params.tags        || '',
+    description: params.description || '',
+  };
+
+  Object.entries(updates).forEach(([key, value]) => {
+    const colIndex = col(key);
+    Logger.log('Writing [' + key + '] = [' + value + '] to col ' + (colIndex + 1));
+    if (colIndex !== undefined) {
+      const cellRange = sheet.getRange(rowIndex, colIndex + 1);
+      // Force duration to plain text so Sheets doesn't parse "1:11:10" as a time value
+      if (key === 'duration') {
+        cellRange.setNumberFormat('@STRING@');
+      }
+      cellRange.setValue(value);
+    }
+  });
+
+  return { success: true, message: 'Track updated!', received_duration: params.duration || '(empty)' };
 }
+
 
 function deleteTrack(params) {
   requireAdmin(params); // Only admin can delete
