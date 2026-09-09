@@ -475,15 +475,20 @@ td.bold{color:var(--text);font-weight:500}
                      oninput="autoConv('fLink','fConv');scheduleDurDetect('fLink','fAudioEl','fAudio','fDur','fDurStatus')"/>
               <div id="fConv" class="driveout" style="display:none" onclick="copyText(this.textContent)"></div>
             </div>
-            <div class="fg"><label class="flabel">Duration <span id="fDurStatus" style="font-size:10px;color:var(--ok);font-weight:400;text-transform:none;letter-spacing:0"></span></label>
-              <input id="fDur" class="finput" placeholder="Auto-detected when you test audio…"/></div>
+            <div class="fg" style="grid-column:1/-1">
+              <label class="flabel">Duration <span id="fDurStatus" style="font-size:10px;color:var(--ok);font-weight:400;text-transform:none;letter-spacing:0"></span></label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input id="fDur" class="finput" placeholder="Auto-detected — or click 🎵 Detect" style="flex:1"/>
+                <button class="btn btn-ok btn-sm" type="button" onclick="detectDuration('fLink','fAudioEl','fAudio','fDur','fDurStatus')" title="Load audio and detect duration">🎵 Detect</button>
+              </div>
+            </div>
             <div class="fg"><label class="flabel">Tags</label>
               <input id="fTags" class="finput" placeholder="theta, trance, sleep"/></div>
             <div class="fg" style="grid-column:1/-1"><label class="flabel">Description</label>
               <textarea id="fDesc" class="finput" rows="3" placeholder="Brief description…"></textarea></div>
           </div>
           <div style="margin-top:12px">
-            <button class="btn btn-s btn-sm" onclick="testAudio('fLink','fAudio','fDur','fDurStatus')">▶ Test Audio <span style="font-size:10px;opacity:.7">(auto-detects duration)</span></button>
+            <button class="btn btn-s btn-sm" onclick="testAudio('fLink','fAudio','fDur','fDurStatus')">▶ Test Audio</button>
             <div id="fAudio" style="display:none;margin-top:8px;padding:8px 10px;
               background:var(--s2);border:1px solid var(--border);border-radius:9px">
               <audio id="fAudioEl" controls style="width:100%;height:30px;accent-color:var(--accent)"></audio>
@@ -597,7 +602,13 @@ td.bold{color:var(--text);font-weight:500}
                  oninput="autoConv('mLink','mConv');scheduleDurDetect('mLink','mAudioEl','mAudioWrap','mDur','mDurStatus')"/>
           <div id="mConv" class="driveout" style="display:none" onclick="copyText(this.textContent)"></div>
         </div>
-        <div class="fg"><label class="flabel">Duration <span id="mDurStatus" style="font-size:10px;color:var(--ok);font-weight:400;text-transform:none;letter-spacing:0"></span></label><input id="mDur" class="finput" placeholder="Auto-detected when you test audio…"/></div>
+        <div class="fg" style="grid-column:1/-1">
+          <label class="flabel">Duration <span id="mDurStatus" style="font-size:10px;color:var(--ok);font-weight:400;text-transform:none;letter-spacing:0"></span></label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="mDur" class="finput" placeholder="Auto-detected — or click 🎵 Detect" style="flex:1"/>
+            <button class="btn btn-ok btn-sm" type="button" onclick="detectDuration('mLink','mAudioEl','mAudioWrap','mDur','mDurStatus',true)" title="Load audio and detect duration">🎵 Detect</button>
+          </div>
+        </div>
         <div class="fg"><label class="flabel">Tags</label><input id="mTags" class="finput"/></div>
         <div class="fg" style="grid-column:1/-1"><label class="flabel">Description</label>
           <textarea id="mDesc" class="finput" rows="2"></textarea></div>
@@ -1109,6 +1120,62 @@ function scheduleDurDetect(linkInputId, audioElId, wrapId, durInputId, statusId)
     audioEl.load();         // loads metadata without playing
     audioEl.volume = 0;     // muted in case it auto-plays briefly
   }, 700);
+}
+
+/* \u2500\u2500\u2500 \ud83c\udfb5 DETECT DURATION BUTTON \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+   User-initiated click = user gesture = bypasses PWA service worker.
+   Mutes audio, plays briefly to trigger loadedmetadata, then pauses.
+   Works on GitHub Pages, localhost, and everywhere. */
+function detectDuration(linkInputId, audioElId, wrapId, durInputId, statusId, autoSave) {
+  const url = drive2stream(v(linkInputId));
+  if (!url) return toast('Paste a Drive/Dropbox link first', 'err');
+
+  const statusEl = statusId ? el(statusId) : null;
+  const audioEl  = el(audioElId);
+  const wrap     = el(wrapId);
+  if (!audioEl)  return;
+
+  if (statusEl) statusEl.textContent = '\u27f3 detecting\u2026';
+
+  // Remove old listeners
+  if (audioEl._durDetectListener) audioEl.removeEventListener('loadedmetadata', audioEl._durDetectListener);
+  if (audioEl._durErrorListener)  audioEl.removeEventListener('error', audioEl._durErrorListener);
+
+  audioEl._durDetectListener = function() {
+    const secs = Math.round(audioEl.duration);
+    audioEl.pause();
+    audioEl.volume = 1; // restore volume for normal playback later
+    if (isFinite(secs) && secs > 0) {
+      const h = Math.floor(secs/3600);
+      const m = Math.floor((secs%3600)/60);
+      const s = secs%60;
+      const fmt = h > 0
+        ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+        : `${m}:${String(s).padStart(2,'0')}`;
+      el(durInputId).value = fmt;
+      if (statusEl) statusEl.textContent = '\u2713 detected';
+      if (autoSave && SESSION) autoSaveDuration(fmt, statusEl);
+    } else {
+      if (statusEl) statusEl.textContent = '\u26a0 could not detect';
+    }
+  };
+
+  audioEl._durErrorListener = function() {
+    audioEl.volume = 1;
+    if (statusEl) statusEl.textContent = '\u26a0 load failed \u2014 check link';
+  };
+
+  audioEl.addEventListener('loadedmetadata', audioEl._durDetectListener, { once: true });
+  audioEl.addEventListener('error',          audioEl._durErrorListener,  { once: true });
+
+  // Show wrap so browser treats as visible media (not background)
+  if (wrap) wrap.style.display = 'block';
+  audioEl.volume = 0;    // mute during detection
+  audioEl.src    = url;
+  audioEl.play().catch(() => {
+    // Autoplay blocked \u2014 try load() as fallback
+    audioEl.load();
+  });
 }
 
 function drive2stream(url) {
