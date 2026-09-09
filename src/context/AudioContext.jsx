@@ -101,6 +101,10 @@ export function AudioProvider({ children }) {
     setIsPlaying(true);
   }, [startSeekTicker]);
 
+  const toggle = useCallback(() => {
+    if (isPlaying) pause(); else resume();
+  }, [isPlaying, pause, resume]);
+
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
   const isPlayingRef = useRef(isPlaying);
