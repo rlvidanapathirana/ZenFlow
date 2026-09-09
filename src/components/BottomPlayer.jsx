@@ -4,6 +4,8 @@ import {
   Volume2, VolumeX, ChevronUp, Loader2,
 } from 'lucide-react';
 
+import { useState } from 'react';
+
 function formatTime(secs) {
   if (!secs || isNaN(secs)) return '0:00';
   const m = Math.floor(secs / 60);
@@ -32,7 +34,9 @@ export default function BottomPlayer({ onExpand }) {
 
   if (!currentTrack) return null;
 
-  const progress = duration > 0 ? (seek / duration) * 100 : 0;
+  const [localSeek, setLocalSeek] = useState(null);
+  const displaySeek = localSeek !== null ? localSeek : seek;
+  const progress = duration > 0 ? (displaySeek / duration) * 100 : 0;
 
   return (
     <div className="bottom-player fixed bottom-0 left-0 right-0 z-40 animate-slide-up">
@@ -49,8 +53,20 @@ export default function BottomPlayer({ onExpand }) {
           min={0}
           max={duration || 100}
           step={0.5}
-          value={seek}
-          onChange={(e) => seekTo(Number(e.target.value))}
+          value={displaySeek}
+          onChange={(e) => setLocalSeek(Number(e.target.value))}
+          onPointerUp={() => {
+            if (localSeek !== null) {
+              seekTo(localSeek);
+              setLocalSeek(null);
+            }
+          }}
+          onKeyUp={(e) => {
+            if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && localSeek !== null) {
+              seekTo(localSeek);
+              setLocalSeek(null);
+            }
+          }}
           className="absolute inset-0 w-full opacity-0 cursor-pointer h-0.5"
           style={{ height: '8px', top: '-4px' }}
         />
@@ -83,7 +99,7 @@ export default function BottomPlayer({ onExpand }) {
               {currentTrack.title}
             </p>
             <p className="text-[11px] text-[var(--text-3)] flex items-center gap-1 mt-0.5">
-              <span>{formatTime(seek)}</span>
+              <span>{formatTime(displaySeek)}</span>
               <span>·</span>
               <span>{formatTime(duration)}</span>
             </p>

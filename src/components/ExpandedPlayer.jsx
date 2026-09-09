@@ -42,7 +42,10 @@ export default function ExpandedPlayer({ onClose }) {
   const isDownloading = downloadProgress[currentTrack.id] !== undefined &&
                         downloadProgress[currentTrack.id] < 100 &&
                         downloadProgress[currentTrack.id] > 0;
-  const progress = duration > 0 ? (seek / duration) * 100 : 0;
+  
+  const [localSeek, setLocalSeek] = useState(null);
+  const displaySeek = localSeek !== null ? localSeek : seek;
+  const progress = duration > 0 ? (displaySeek / duration) * 100 : 0;
 
   return (
     <div
@@ -156,15 +159,27 @@ export default function ExpandedPlayer({ onClose }) {
               min={0}
               max={duration || 100}
               step={0.5}
-              value={seek}
-              onChange={(e) => seekTo(Number(e.target.value))}
+              value={displaySeek}
+              onChange={(e) => setLocalSeek(Number(e.target.value))}
+              onPointerUp={() => {
+                if (localSeek !== null) {
+                  seekTo(localSeek);
+                  setLocalSeek(null);
+                }
+              }}
+              onKeyUp={(e) => {
+                if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && localSeek !== null) {
+                  seekTo(localSeek);
+                  setLocalSeek(null);
+                }
+              }}
               className="w-full"
               style={{
                 background: `linear-gradient(to right, ${currentTrack.accentColor} ${progress}%, var(--surface-3) ${progress}%)`,
               }}
             />
             <div className="flex justify-between mt-1.5 text-xs text-[var(--text-3)]">
-              <span>{formatTime(seek)}</span>
+              <span>{formatTime(displaySeek)}</span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
