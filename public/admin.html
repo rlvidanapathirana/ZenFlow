@@ -1132,10 +1132,9 @@ function detectDuration(linkInputId, audioElId, wrapId, durInputId, statusId, au
 
   const statusEl = statusId ? el(statusId) : null;
   const audioEl  = el(audioElId);
-  const wrap     = el(wrapId);
   if (!audioEl)  return;
 
-  if (statusEl) statusEl.textContent = '\u27f3 detecting\u2026';
+  if (statusEl) statusEl.textContent = '⟳ detecting…';
 
   // Remove old listeners
   if (audioEl._durDetectListener) audioEl.removeEventListener('loadedmetadata', audioEl._durDetectListener);
@@ -1143,8 +1142,13 @@ function detectDuration(linkInputId, audioElId, wrapId, durInputId, statusId, au
 
   audioEl._durDetectListener = function() {
     const secs = Math.round(audioEl.duration);
+    // ── Stop immediately — no audible playback ──
     audioEl.pause();
-    audioEl.volume = 1; // restore volume for normal playback later
+    audioEl.src    = '';   // clear so Test Audio button starts fresh
+    audioEl.volume = 1;    // restore for future playback
+    const wrap = el(wrapId);
+    if (wrap) wrap.style.display = 'none'; // keep panel hidden
+
     if (isFinite(secs) && secs > 0) {
       const h = Math.floor(secs/3600);
       const m = Math.floor((secs%3600)/60);
@@ -1153,30 +1157,30 @@ function detectDuration(linkInputId, audioElId, wrapId, durInputId, statusId, au
         ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
         : `${m}:${String(s).padStart(2,'0')}`;
       el(durInputId).value = fmt;
-      if (statusEl) statusEl.textContent = '\u2713 detected';
+      if (statusEl) statusEl.textContent = '✓ detected';
       if (autoSave && SESSION) autoSaveDuration(fmt, statusEl);
     } else {
-      if (statusEl) statusEl.textContent = '\u26a0 could not detect';
+      if (statusEl) statusEl.textContent = '⚠ could not detect';
     }
   };
 
   audioEl._durErrorListener = function() {
     audioEl.volume = 1;
-    if (statusEl) statusEl.textContent = '\u26a0 load failed \u2014 check link';
+    if (statusEl) statusEl.textContent = '⚠ load failed — check link';
   };
 
   audioEl.addEventListener('loadedmetadata', audioEl._durDetectListener, { once: true });
   audioEl.addEventListener('error',          audioEl._durErrorListener,  { once: true });
 
-  // Show wrap so browser treats as visible media (not background)
-  if (wrap) wrap.style.display = 'block';
-  audioEl.volume = 0;    // mute during detection
+  // Keep audio panel HIDDEN — silent background detection only
+  audioEl.volume = 0;
   audioEl.src    = url;
-  audioEl.play().catch(() => {
-    // Autoplay blocked \u2014 try load() as fallback
-    audioEl.load();
-  });
+  // play() triggers streaming (bypasses SW) → then immediately pause
+  audioEl.play()
+    .then(() => audioEl.pause())   // pause right away — before any audio heard
+    .catch(() => audioEl.load());  // fallback if autoplay blocked
 }
+
 
 function drive2stream(url) {
   if(!url) return '';
